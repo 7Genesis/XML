@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Motor de Extração XML</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
+            padding-bottom: 140px;
+        }
+        .header {
+            background: white;
+            padding: 30px 40px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            margin-bottom: 20px;
+            font-size: 22px;
+            color: #0f172a;
+        }
+        .input-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        input[type="url"] {
+            flex: 1;
+            padding: 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+        }
+        input[type="url"]:focus {
+            border-color: #3b82f6;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 16px 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button:hover { opacity: 0.9; }
+        button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+        #status {
+            color: #64748b;
+            font-weight: 500;
+            min-height: 20px;
+            font-size: 14px;
+        }
+
+        .grid-container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 40px;
+        }
+        .grid-header {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .small-btn {
+            padding: 10px 16px;
+            font-size: 14px;
+        }
+        .grid-produtos {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+            position: relative;
+            overflow: hidden;
+            transition: 0.2s;
+        }
+        .card.selected {
+            border-color: #10b981;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+        }
+        .card-checkbox {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            accent-color: #10b981;
+            z-index: 10;
+        }
+        .card-image-container {
+            position: relative;
+            height: 240px;
+            background: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .card-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .nav-btn:hover { background: rgba(0,0,0,0.7); }
+        .nav-btn.prev { left: 10px; }
+        .nav-btn.next { right: 10px; }
+        .image-count {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.6);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .card-content {
+            padding: 16px;
+        }
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            line-height: 1.3;
+            margin-bottom: 8px;
+        }
+        .card-price {
+            color: #3b82f6;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .floating-bar {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 20px 40px;
+            border-radius: 50px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            border: 1px solid #e2e8f0;
+            z-index: 1000;
+        }
+        .stats {
+            font-weight: 700;
+            font-size: 16px;
+        }
+        .btn-gerar {
+            background: #10b981;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-container">
+            <h1>Motor de Extração XML</h1>
+            <div class="input-group">
+                <input type="url" id="urlInput" placeholder="Cole a URL do site aqui">
+                <button onclick="iniciarExtracao()" id="btnGerar">Mapear Produtos</button>
+            </div>
+            <div id="status"></div>
+        </div>
+    </div>
+
+    <div class="grid-container" id="gridContainer" style="display: none;">
+        <div class="grid-header">
+            <button class="small-btn" onclick="selecionarTodos()">✅ Selecionar Todos</button>
+            <button class="small-btn" onclick="desselecionarTodos()">❌ Desselecionar Todos</button>
+            <span style="color: #64748b;">Total de itens encontrados: <strong id="totalDisplay">0</strong></span>
+        </div>
+        <div class="grid-produtos" id="grid"></div>
+    </div>
+
+    <div class="floating-bar" id="floatingBar" style="display: none;">
+        <div class="stats">Selecionados: <span id="contador">0</span> de <span id="total">0</span></div>
+        <button class="btn-gerar" onclick="gerarXMLFinal()">Exportar XML</button>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        let produtosAtuais = [];
+
+        function atualizarContador() {
+            const checkboxes = document.querySelectorAll('.prod-checkbox:checked');
+            const totalSelecionados = checkboxes.length;
+            document.getElementById('contador').innerText = totalSelecionados;
+
+            document.querySelectorAll('.card').forEach((card, index) => {
+                const checkbox = card.querySelector('.prod-checkbox');
+                if (checkbox.checked) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
+                }
+            });
+        }
+
+        function selecionarTodos() {
+            document.querySelectorAll('.prod-checkbox').forEach(cb => {
+                cb.checked = true;
+            });
+            atualizarContador();
+        }
+
+        function desselecionarTodos() {
+            document.querySelectorAll('.prod-checkbox').forEach(cb => {
+                cb.checked = false;
+            });
+            atualizarContador();
+        }
+
+        function mudarFoto(produtoIndex, direcao) {
+            const produto = produtosAtuais[produtoIndex];
+            if (!produto.images || produto.images.length <= 1) return;
+
+            let novoIndice = produto.selectedImageIndex + direcao;
+            if (novoIndice < 0) novoIndice = produto.images.length - 1;
+            if (novoIndice >= produto.images.length) novoIndice = 0;
+            
+            produto.selectedImageIndex = novoIndice;
+            atualizarFotoNoCard(produtoIndex);
+        }
+
+        function atualizarFotoNoCard(produtoIndex) {
+            const produto = produtosAtuais[produtoIndex];
+            const card = document.querySelector(`[data-produto-index="${produtoIndex}"]`);
+            if (!card) return;
+
+            const img = card.querySelector('.card-image');
+            const count = card.querySelector('.image-count');
+            
+            img.src = produto.images[produto.selectedImageIndex] || 'https://via.placeholder.com/320x240?text=Sem+Foto';
+            count.textContent = `${produto.selectedImageIndex + 1}/${produto.images.length}`;
+        }
+
+        function formatarPrecoParaMeta(precoTexto) {
+            if (!precoTexto) return '0 BRL';
+            const numeros = precoTexto.match(/[\d.,]+/);
+            if (!numeros) return '0 BRL';
+            let valorLimpo = numeros[0];
+            if (valorLimpo.includes(',') && valorLimpo.includes('.')) {
+                const parteDecimal = valorLimpo.slice(-3);
+                if (parteDecimal.startsWith(',')) {
+                    valorLimpo = valorLimpo.replace(/\./g, '').replace(',', '.');
+                } else {
+                    valorLimpo = valorLimpo.replace(/,/g, '');
+                }
+            } else if (valorLimpo.includes(',')) {
+                valorLimpo = valorLimpo.replace(',', '.');
+            }
+            let valor = parseFloat(valorLimpo);
+            if (isNaN(valor)) valor = 0;
+            return `${Math.round(valor)} BRL`;
+        }
+
+        async function iniciarExtracao() {
+            const url = document.getElementById('urlInput').value.trim();
+            if (!url) return alert('Erro: Insira uma URL válida.');
+
+            const btn = document.getElementById('btnGerar');
+            const status = document.getElementById('status');
+            const grid = document.getElementById('grid');
+            const gridContainer = document.getElementById('gridContainer');
+            const floatingBar = document.getElementById('floatingBar');
+
+            btn.disabled = true;
+            btn.innerText = 'A processar...';
+            status.innerText = 'A iniciar extração...';
+            grid.innerHTML = '';
+            gridContainer.style.display = 'none';
+            floatingBar.style.display = 'none';
+            produtosAtuais = [];
+
+            ipcRenderer.on('scrape-progress', (event, data) => {
+                status.innerText = `A extrair página ${data.pagina}... Total já capturado: ${data.totalProdutos} itens`;
+            });
+
+            try {
+                const result = await ipcRenderer.invoke('scrape-url', url);
+                ipcRenderer.removeAllListeners('scrape-progress');
+
+                if (result.success && result.produtos.length > 0) {
+                    status.innerText = `Sucesso! ${result.produtos.length} itens extraídos.`;
+                    produtosAtuais = result.produtos;
+                    
+                    renderizarGrid();
+                    gridContainer.style.display = 'block';
+                    floatingBar.style.display = 'flex';
+                    document.getElementById('total').innerText = produtosAtuais.length;
+                    document.getElementById('totalDisplay').innerText = produtosAtuais.length;
+                    atualizarContador();
+                } else {
+                    alert('Falha: ' + (result.error || 'Nenhum produto encontrado.'));
+                    status.innerText = 'Falha na extração.';
+                }
+            } catch (error) {
+                alert('Erro: ' + error.message);
+                status.innerText = 'Erro crítico.';
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Mapear Produtos';
+            }
+        }
+
+        function renderizarGrid() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+
+            produtosAtuais.forEach((prod, index) => {
+                const card = document.createElement('div');
+                card.className = 'card selected';
+                card.setAttribute('data-produto-index', index);
+                
+                const temMultiplasFotos = prod.images && prod.images.length > 1;
+                const fotoAtual = prod.images[prod.selectedImageIndex] || 'https://via.placeholder.com/320x240?text=Sem+Foto';
+
+                card.innerHTML = `
+                    <input type="checkbox" class="card-checkbox prod-checkbox" data-index="${index}" checked>
+                    <div class="card-image-container">
+                        ${temMultiplasFotos ? `<button class="nav-btn prev" data-index="${index}" data-direcao="-1">❮</button>` : ''}
+                        <img src="${fotoAtual}" alt="${prod.title}" class="card-image" onerror="this.src='https://via.placeholder.com/320x240?text=Sem+Foto'">
+                        ${temMultiplasFotos ? `<button class="nav-btn next" data-index="${index}" data-direcao="1">❯</button>` : ''}
+                        <div class="image-count">${temMultiplasFotos ? `${prod.selectedImageIndex + 1}/${prod.images.length}` : ''}</div>
+                    </div>
+                    <div class="card-content">
+                        <h3 class="card-title">${prod.title}</h3>
+                        <p class="card-price">${prod.price || 'Preço não encontrado'}</p>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            // Adiciona eventos aos botões de navegação de foto
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const index = parseInt(btn.getAttribute('data-index'));
+                    const direcao = parseInt(btn.getAttribute('data-direcao'));
+                    mudarFoto(index, direcao);
+                });
+            });
+
+            // Adiciona evento aos checkboxes
+            document.querySelectorAll('.prod-checkbox').forEach(cb => {
+                cb.addEventListener('change', atualizarContador);
+            });
+        }
+
+        function gerarXMLFinal() {
+            const checkboxes = document.querySelectorAll('.prod-checkbox:checked');
+            if (checkboxes.length === 0) return alert('Selecione pelo menos um produto para exportar.');
+
+            const produtosSelecionados = [];
+            checkboxes.forEach(cb => {
+                const index = parseInt(cb.getAttribute('data-index'));
+                const prod = produtosAtuais[index];
+                const fotoSelecionada = prod.images[prod.selectedImageIndex] || '';
+                produtosSelecionados.push({
+                    ...prod,
+                    selectedImage: fotoSelecionada
+                });
+            });
+
+            let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">\n<channel>\n`;
+            xml += `<title>Catálogo Automatizado</title>\n<link>https://nova-lab.com</link>\n<description>Feed gerado via software de extração</description>\n`;
+
+            produtosSelecionados.forEach(prod => {
+                const precoFormatado = formatarPrecoParaMeta(prod.price);
+                xml += `    <item>\n        <g:id>${prod.id}</g:id>\n        <g:title><![CDATA[${prod.title}]]></g:title>\n        <g:link>${prod.link}</g:link>\n        <g:image_link>${prod.selectedImage}</g:image_link>\n        <g:price>${precoFormatado}</g:price>\n        <g:availability>in stock</g:availability>\n    </item>\n`;
+            });
+
+            xml += `</channel>\n</rss>`;
+
+            const blob = new Blob([xml], { type: 'text/xml' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'catalogo-performance.xml';
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+    </script>
+</body>
+</html>
